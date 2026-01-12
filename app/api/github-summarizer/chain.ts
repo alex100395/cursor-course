@@ -17,6 +17,7 @@ export async function generateSummary(readmeContent: string): Promise<SummaryOut
   const model = new ChatOpenAI({
     model: 'gpt-4o-mini', // You can change this to 'gpt-4', 'gpt-3.5-turbo', etc.
     temperature: 0.7,
+    openAIApiKey: process.env.OPENAI_API_KEY, // Explicitly use env variable
   });
 
   // Step 2: Bind withStructuredOutput to the model
