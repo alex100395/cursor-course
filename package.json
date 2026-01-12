@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@langchain/core": "^1.1.11",
+    "@langchain/openai": "^1.2.1",
     "@supabase/supabase-js": "^2.88.0",
     "langchain": "^1.2.6",
     "next": "16.0.10",
     "react": "19.2.1",
-    "react-dom": "19.2.1"
+    "react-dom": "19.2.1",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

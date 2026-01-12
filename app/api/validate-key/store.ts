@@ -111,3 +111,35 @@ export async function deleteApiKey(id: string): Promise<boolean> {
 
   return true;
 }
+
+export async function validateApiKey(apiKey: string): Promise<boolean> {
+  try {
+    // Check both 'value' (client-side) and 'key' (server-side) fields for compatibility
+    const { data: dataValue, error: errorValue } = await supabaseServer
+      .from(TABLE_NAME)
+      .select('id')
+      .eq('value', apiKey)
+      .limit(1);
+    
+    if (!errorValue && dataValue && dataValue.length > 0) {
+      return true;
+    }
+    
+    // Fallback to 'key' field
+    const { data, error } = await supabaseServer
+      .from(TABLE_NAME)
+      .select('id')
+      .eq('key', apiKey)
+      .limit(1);
+
+    if (error) {
+      console.error('Error validating API key in Supabase:', error);
+      return false;
+    }
+
+    return data && data.length > 0;
+  } catch (error) {
+    console.error('Error validating API key:', error);
+    return false;
+  }
+}
