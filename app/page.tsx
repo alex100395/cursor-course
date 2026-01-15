@@ -27,6 +27,36 @@ export default function Home() {
   const { showNotification, notificationMessage, notificationType, displayNotification } =
     useNotification();
   const { user, session, loading: authLoading, signInWithGoogle, signOut, isAuthenticated } = useAuth();
+  const [directSession, setDirectSession] = useState<any>(null);
+
+  // Direct session check that bypasses React state
+  useEffect(() => {
+    const check = async () => {
+      const { data: { session: s } } = await supabase.auth.getSession();
+      setDirectSession(s);
+    };
+    check();
+    const interval = setInterval(check, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const [forceCheck, setForceCheck] = useState(0);
+
+  // Force check session directly - bypass state if needed
+  useEffect(() => {
+    const checkDirectly = async () => {
+      const { data: { session: directSession } } = await supabase.auth.getSession();
+      if (directSession && (!user && !session)) {
+        console.log('🔧 Session exists but state is wrong - forcing update');
+        setForceCheck(prev => prev + 1);
+      }
+    };
+    
+    if (!authLoading) {
+      checkDirectly();
+      const interval = setInterval(checkDirectly, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [authLoading, user, session]);
 
   // Check for session in URL hash (from OAuth redirect) and process it
   useEffect(() => {
@@ -48,22 +78,26 @@ export default function Home() {
     processUrlHash();
   }, []);
 
-  // Force session check - if session exists but state says not authenticated, reload
+  // NUCLEAR OPTION: If session exists in localStorage but state says not authenticated, force reload
   useEffect(() => {
-    const checkAndReload = async () => {
-      // Only check if we think we're not authenticated
-      if (!authLoading && !isAuthenticated) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          console.log('🔄 Session exists but state says not authenticated - reloading');
-          window.location.reload();
-        }
+    if (!authLoading && !isAuthenticated && typeof window !== 'undefined') {
+      // Check if there's ANY auth token in localStorage
+      const hasAuthToken = Object.keys(localStorage).some(key => 
+        key.startsWith('sb-') && key.includes('auth-token')
+      );
+      
+      if (hasAuthToken) {
+        console.log('🔍 Found auth token but state says not authenticated - checking session...');
+        const timer = setTimeout(async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log('✅ Session found - reloading to sync state');
+            window.location.reload();
+          }
+        }, 1000);
+        return () => clearTimeout(timer);
       }
-    };
-    
-    // Check after 2 seconds
-    const timer = setTimeout(checkAndReload, 2000);
-    return () => clearTimeout(timer);
+    }
   }, [authLoading, isAuthenticated]);
 
   // Only fetch API keys when authenticated
@@ -247,18 +281,23 @@ export default function Home() {
               {/* Authentication Section */}
               {authLoading ? (
                 <div className="h-9 w-20 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
-              ) : isAuthenticated ? (
+              ) : (isAuthenticated || user || session || directSession) ? (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                    {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture || session?.user?.user_metadata?.avatar_url || session?.user?.user_metadata?.picture) && (
+                    {((user || session?.user || directSession?.user)?.user_metadata?.avatar_url || 
+                      (user || session?.user || directSession?.user)?.user_metadata?.picture) && (
                       <img
-                        src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture || session?.user?.user_metadata?.avatar_url || session?.user?.user_metadata?.picture}
-                        alt={user?.email || session?.user?.email || 'User'}
+                        src={(user || session?.user || directSession?.user)?.user_metadata?.avatar_url || 
+                             (user || session?.user || directSession?.user)?.user_metadata?.picture}
+                        alt={(user || session?.user || directSession?.user)?.email || 'User'}
                         className="h-6 w-6 rounded-full"
                       />
                     )}
                     <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200 max-w-[120px] truncate">
-                      {user?.user_metadata?.full_name || user?.user_metadata?.name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || user?.email || session?.user?.email || 'User'}
+                      {(user || session?.user || directSession?.user)?.user_metadata?.full_name || 
+                       (user || session?.user || directSession?.user)?.user_metadata?.name || 
+                       (user || session?.user || directSession?.user)?.email || 
+                       'User'}
                     </span>
                   </div>
                   <button
@@ -442,8 +481,8 @@ export default function Home() {
             </section>
 
             {/* API Keys table / states */}
-            {/* Only show API keys when authenticated */}
-            {!authLoading && isAuthenticated && (
+            {/* Only show API keys when authenticated (check direct session too) */}
+            {!authLoading && (isAuthenticated || directSession) && (
             <section className="space-y-4">
               {error && (
                 <div className="p-4 bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800 rounded-2xl">

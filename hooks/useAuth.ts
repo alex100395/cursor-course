@@ -13,6 +13,7 @@ export function useAuth() {
     // DIRECT approach: Get session and set state immediately
     const initSession = async () => {
       try {
+        // Try Supabase first
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (mounted) {
@@ -21,14 +22,38 @@ export function useAuth() {
           }
           
           if (session) {
-            console.log('✅ Session found:', session.user?.email);
+            console.log('✅ Session found via Supabase:', session.user?.email);
             setSession(session);
             setUser(session.user);
             setLoading(false);
-            return; // Exit early if we have a session
+            return;
           }
           
-          // If no session, set to null and stop loading
+          // If Supabase returns no session, check localStorage directly as fallback
+          if (typeof window !== 'undefined') {
+            const storageKey = Object.keys(localStorage).find(key => 
+              key.startsWith('sb-') && key.includes('auth-token')
+            );
+            
+            if (storageKey) {
+              console.log('🔍 Found auth token in localStorage, forcing session refresh...');
+              try {
+                // Force Supabase to re-read from storage
+                const { data: { session: retrySession } } = await supabase.auth.getSession();
+                if (retrySession && mounted) {
+                  console.log('✅ Session found on retry:', retrySession.user?.email);
+                  setSession(retrySession);
+                  setUser(retrySession.user);
+                  setLoading(false);
+                  return;
+                }
+              } catch (retryErr) {
+                console.error('❌ Error on retry:', retryErr);
+              }
+            }
+          }
+          
+          // If no session found, set to null
           setSession(null);
           setUser(null);
           setLoading(false);
@@ -44,12 +69,12 @@ export function useAuth() {
     // Get session immediately
     initSession();
 
-    // Also check after a short delay (for production timing)
-    const timeoutId = setTimeout(() => {
-      if (mounted) {
-        initSession();
-      }
-    }, 1000);
+    // Check multiple times (production can be slow)
+    const timeouts = [
+      setTimeout(() => mounted && initSession(), 500),
+      setTimeout(() => mounted && initSession(), 1500),
+      setTimeout(() => mounted && initSession(), 3000),
+    ];
 
     // Listen for auth changes - this is the PRIMARY way to detect sessions
     const {
@@ -90,7 +115,7 @@ export function useAuth() {
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      timeouts.forEach(clearTimeout);
       subscription.unsubscribe();
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleStorageChange);
