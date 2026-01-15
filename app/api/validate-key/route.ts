@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllApiKeys, createApiKey, updateApiKey, deleteApiKey, validateApiKey } from './store';
+import { getUserFromRequest } from '../../../lib/getUserFromRequest';
 
 // GET - List all API keys OR validate a single API key
 export async function GET(request: NextRequest) {
@@ -14,12 +15,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ valid: isValid });
     }
 
-    // Otherwise, return all API keys
+    // Otherwise, return API keys for the authenticated user
     console.log('GET /api/validate-key - Fetching API keys');
+    const userId = await getUserFromRequest(request);
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
     console.log('Service role key available:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing');
+    console.log('Fetching API keys for user:', userId);
     
-    const apiKeys = await getAllApiKeys();
+    const apiKeys = await getAllApiKeys(userId);
     console.log('Successfully fetched', apiKeys.length, 'API keys');
     return NextResponse.json(apiKeys);
   } catch (error: any) {
@@ -50,6 +61,15 @@ export async function POST(request: NextRequest) {
     // Log environment variable status
     console.log('API Route - SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     
+    const userId = await getUserFromRequest(request);
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
     const body = await request.json();
     const { name, key } = body;
 
@@ -60,7 +80,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newApiKey = await createApiKey(name, key);
+    const newApiKey = await createApiKey(name, key, userId);
     return NextResponse.json(newApiKey, { status: 201 });
   } catch (error: any) {
     console.error('API Route - Error creating API key:', error);
@@ -89,6 +109,15 @@ export async function POST(request: NextRequest) {
 // PUT - Update an API key
 export async function PUT(request: NextRequest) {
   try {
+    const userId = await getUserFromRequest(request);
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
     const body = await request.json();
     const { id, name, key } = body;
 
@@ -99,10 +128,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const updatedApiKey = await updateApiKey(id, { name, key });
+    const updatedApiKey = await updateApiKey(id, { name, key }, userId);
     if (!updatedApiKey) {
       return NextResponse.json(
-        { error: 'API key not found' },
+        { error: 'API key not found or access denied' },
         { status: 404 }
       );
     }
@@ -120,6 +149,15 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete an API key
 export async function DELETE(request: NextRequest) {
   try {
+    const userId = await getUserFromRequest(request);
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -130,7 +168,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await deleteApiKey(id);
+    const success = await deleteApiKey(id, userId);
+    if (!success) {
+      return NextResponse.json(
+        { error: 'API key not found or access denied' },
+        { status: 404 }
+      );
+    }
+    
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting API key:', error);

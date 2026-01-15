@@ -54,7 +54,7 @@ export default function AuthCallback() {
               // Continue even if user profile creation fails
             }
             // Wait a moment to ensure session is persisted, then redirect
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 500));
             // Use window.location for full page reload to ensure session is read
             window.location.href = '/';
             return;
@@ -93,7 +93,7 @@ export default function AuthCallback() {
               // Continue even if user profile creation fails
             }
             // Wait a moment to ensure session is persisted, then redirect
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 500));
             // Use window.location for full page reload to ensure session is read
             window.location.href = '/';
             return;

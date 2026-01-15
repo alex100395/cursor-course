@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import type { ApiKey } from '../types/apiKey';
 
 export function useApiKeys() {
@@ -6,11 +7,25 @@ export function useApiKeys() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const getAuthHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+    
+    return headers;
+  };
+
   const fetchApiKeys = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetch('/api/validate-key');
+      const headers = await getAuthHeaders();
+      const response = await fetch('/api/validate-key', { headers });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch API keys`);
@@ -32,11 +47,10 @@ export function useApiKeys() {
     async (name: string, key: string) => {
       try {
         setError(null);
+        const headers = await getAuthHeaders();
         const response = await fetch('/api/validate-key', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({ name, key }),
         });
 
@@ -63,11 +77,10 @@ export function useApiKeys() {
     async (id: string, name: string, key: string) => {
       try {
         setError(null);
+        const headers = await getAuthHeaders();
         const response = await fetch('/api/validate-key', {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({ id, name, key }),
         });
 
@@ -91,8 +104,10 @@ export function useApiKeys() {
     async (id: string) => {
       try {
         setError(null);
+        const headers = await getAuthHeaders();
         const response = await fetch(`/api/validate-key?id=${id}`, {
           method: 'DELETE',
+          headers,
         });
 
         if (!response.ok) {
@@ -112,7 +127,10 @@ export function useApiKeys() {
   );
 
   useEffect(() => {
-    fetchApiKeys();
+    // Only fetch API keys if we're in a browser environment
+    if (typeof window !== 'undefined') {
+      fetchApiKeys();
+    }
   }, [fetchApiKeys]);
 
   return {

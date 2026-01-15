@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import Sidebar from '../components/Sidebar';
 import NotificationToast from '../components/NotificationToast';
 import ApiKeysTable from '../components/ApiKeysTable';
@@ -21,11 +21,37 @@ export default function Home() {
   const [monthlyLimit, setMonthlyLimit] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const { apiKeys, isLoading, error, setError, createApiKey, updateApiKey, deleteApiKey } =
+  const { apiKeys, isLoading, error, setError, createApiKey, updateApiKey, deleteApiKey, fetchApiKeys } =
     useApiKeys();
   const { showNotification, notificationMessage, notificationType, displayNotification } =
     useNotification();
   const { user, loading: authLoading, signInWithGoogle, signOut, isAuthenticated } = useAuth();
+
+  // Check for auth session on mount (in case we're redirected back from OAuth)
+  useEffect(() => {
+    const checkAuthFromUrl = async () => {
+      // Check if there's a session in the URL (from OAuth callback)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+      
+      if (hashParams.get('access_token') || queryParams.get('code')) {
+        // If we have auth tokens in URL, wait a moment for Supabase to process them
+        await new Promise(resolve => setTimeout(resolve, 500));
+        // Force a refresh of the auth state
+        window.location.hash = '';
+        window.location.search = '';
+      }
+    };
+    
+    checkAuthFromUrl();
+  }, []);
+
+  // Refetch API keys when authentication state changes
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      fetchApiKeys();
+    }
+  }, [isAuthenticated, authLoading, fetchApiKeys]);
 
   const openCreateModal = () => {
     setEditingKey(null);
