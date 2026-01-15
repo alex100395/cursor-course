@@ -42,10 +42,22 @@ export default function Home() {
         window.location.hash = '';
         window.location.search = '';
       }
+      
+      // Also check session after page load (helps with production timing)
+      // Wait a bit longer in production
+      const delay = window.location.hostname === 'localhost' ? 1000 : 2000;
+      setTimeout(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && !isAuthenticated && !authLoading) {
+          // Session exists but wasn't detected - force a re-check
+          console.log('Session found but not detected, triggering refresh');
+          // The useAuth hook should pick this up via onAuthStateChange
+        }
+      }, delay);
     };
     
     checkAuthFromUrl();
-  }, []);
+  }, [isAuthenticated, authLoading]);
 
   // Refetch API keys when authentication state changes or after auth loading completes
   useEffect(() => {
