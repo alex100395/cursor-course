@@ -31,27 +31,29 @@ export default function Home() {
   // Check for auth session on mount (in case we're redirected back from OAuth)
   useEffect(() => {
     const checkAuthFromUrl = async () => {
-      // Check if there's a session in the URL (from OAuth callback)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const queryParams = new URLSearchParams(window.location.search);
-      
-      if (hashParams.get('access_token') || queryParams.get('code')) {
-        // If we have auth tokens in URL, wait a moment for Supabase to process them
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // Force a refresh of the auth state
-        window.location.hash = '';
-        window.location.search = '';
+      // Clear any hash fragments that might interfere
+      if (window.location.hash && window.location.hash !== '#') {
+        const hash = window.location.hash.substring(1);
+        // If hash contains auth tokens, let Supabase handle it
+        if (hash.includes('access_token') || hash.includes('code')) {
+          console.log('Auth tokens found in URL hash, waiting for Supabase to process...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        // Clear the hash after processing
+        if (window.history.replaceState) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
       }
       
-      // Also check session after page load (helps with production timing)
+      // Check session after page load (helps with production timing)
       // Wait a bit longer in production
       const delay = window.location.hostname === 'localhost' ? 1000 : 2000;
       setTimeout(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Post-load session check:', session ? `✅ Found (${session.user.email})` : '❌ Not found', error ? `Error: ${error.message}` : '');
         if (session && !isAuthenticated && !authLoading) {
-          // Session exists but wasn't detected - force a re-check
-          console.log('Session found but not detected, triggering refresh');
-          // The useAuth hook should pick this up via onAuthStateChange
+          // Session exists but wasn't detected - the useAuth hook should pick this up
+          console.log('⚠️ Session exists but isAuthenticated is false - useAuth should detect it');
         }
       }, delay);
     };
