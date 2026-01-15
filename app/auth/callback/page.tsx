@@ -53,8 +53,11 @@ export default function AuthCallback() {
               console.error('Error creating/updating user profile:', error);
               // Continue even if user profile creation fails
             }
-            // Success! Redirect to home
-            router.push('/');
+            // Wait a moment to ensure session is saved to localStorage
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Use window.location for full page reload to ensure session is read
+            window.location.href = '/';
             return;
           }
         }

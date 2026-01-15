@@ -15,16 +15,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ valid: isValid });
     }
 
-    // Otherwise, return API keys for the authenticated user (or all if not authenticated)
+    // Otherwise, return all API keys (for now, we'll filter by user later if needed)
     console.log('GET /api/validate-key - Fetching API keys');
-    const userId = await getUserFromRequest(request);
+    
+    // Try to get user, but don't fail if we can't
+    let userId: string | undefined = undefined;
+    try {
+      userId = await getUserFromRequest(request) || undefined;
+      console.log('User ID:', userId || 'Not authenticated - returning all keys');
+    } catch (error) {
+      console.warn('Could not get user from request, returning all keys:', error);
+    }
     
     console.log('Service role key available:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing');
-    console.log('User ID:', userId || 'Not authenticated - returning all keys');
     
-    // If user is authenticated, filter by user_id, otherwise return all (for backward compatibility)
-    const apiKeys = await getAllApiKeys(userId || undefined);
+    // Return all keys (filtered by user_id if provided)
+    const apiKeys = await getAllApiKeys(userId);
     console.log('Successfully fetched', apiKeys.length, 'API keys');
     return NextResponse.json(apiKeys);
   } catch (error: any) {

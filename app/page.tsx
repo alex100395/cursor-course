@@ -27,8 +27,32 @@ export default function Home() {
     useNotification();
   const { user, loading: authLoading, signInWithGoogle, signOut, isAuthenticated } = useAuth();
 
+  // Check for session in URL hash (from OAuth redirect) and process it
+  useEffect(() => {
+    const processUrlHash = async () => {
+      if (typeof window === 'undefined') return;
+      
+      const hash = window.location.hash.substring(1);
+      if (hash && (hash.includes('access_token') || hash.includes('code'))) {
+        // Session tokens in URL - Supabase should handle this automatically
+        // but let's make sure by clearing the hash after a moment
+        setTimeout(() => {
+          if (window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+        }, 1000);
+      }
+    };
+    
+    processUrlHash();
+  }, []);
 
-  // Refetch API keys when authentication state changes
+  // Always fetch API keys when component mounts
+  useEffect(() => {
+    fetchApiKeys();
+  }, [fetchApiKeys]);
+  
+  // Also refetch when authentication state changes
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       fetchApiKeys();
@@ -402,7 +426,8 @@ export default function Home() {
             </section>
 
             {/* API Keys table / states */}
-            {isAuthenticated && (
+            {/* Show API keys if authenticated OR if we have keys (for backward compatibility) */}
+            {(isAuthenticated || apiKeys.length > 0 || !authLoading) && (
             <section className="space-y-4">
               {error && (
                 <div className="p-4 bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800 rounded-2xl">
