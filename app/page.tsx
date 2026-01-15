@@ -42,25 +42,15 @@ export default function Home() {
         window.location.hash = '';
         window.location.search = '';
       }
-      
-      // Also check session after a delay in production (to handle timing issues)
-      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-        setTimeout(async () => {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session && !isAuthenticated) {
-            // Force a re-render by reloading the page
-            window.location.reload();
-          }
-        }, 2000);
-      }
     };
     
     checkAuthFromUrl();
-  }, [isAuthenticated]);
+  }, []);
 
-  // Refetch API keys when authentication state changes
+  // Refetch API keys when authentication state changes or after auth loading completes
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    if (!authLoading) {
+      // Fetch API keys regardless of auth state (for backward compatibility)
       fetchApiKeys();
     }
   }, [isAuthenticated, authLoading, fetchApiKeys]);

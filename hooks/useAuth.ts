@@ -38,12 +38,12 @@ export function useAuth() {
     // Check immediately
     checkSession();
 
-    // Check multiple times with increasing delays to handle production timing issues
-    const timeouts = [
-      setTimeout(() => checkSession(), 100),
-      setTimeout(() => checkSession(), 500),
-      setTimeout(() => checkSession(), 1000),
-    ];
+    // Check once more after a short delay to handle timing issues
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        checkSession();
+      }
+    }, 500);
 
     // Listen for auth changes
     const {
@@ -59,7 +59,7 @@ export function useAuth() {
 
     return () => {
       mounted = false;
-      timeouts.forEach(timeout => clearTimeout(timeout));
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
