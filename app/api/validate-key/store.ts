@@ -160,6 +160,10 @@ export async function createApiKey(name: string, key: string, userId?: string | 
     throw error;
   }
 
+  if (!data) {
+    throw new Error('Failed to create API key: No data returned');
+  }
+
   return {
     id: data.id,
     name: data.name,
