@@ -11,22 +11,38 @@ export interface ApiKey {
 const TABLE_NAME = 'api_keys';
 
 export async function getAllApiKeys(): Promise<ApiKey[]> {
+  console.log('getAllApiKeys - Starting fetch from', TABLE_NAME);
+  console.log('Using service role key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  
+  // Query only the columns that actually exist in the table
+  // Based on errors: table has 'value' not 'key', and no 'last_used' column
   const { data, error } = await supabaseServer
     .from(TABLE_NAME)
-    .select('id, name, key, created_at, last_used')
+    .select('id, name, value, created_at, usage')
     .order('created_at', { ascending: false });
 
   if (error) {
+    console.error('getAllApiKeys - Supabase error:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     throw error;
+  }
+
+  console.log('getAllApiKeys - Fetched', data?.length || 0, 'rows');
+  if (data && data.length > 0) {
+    console.log('getAllApiKeys - Sample row:', JSON.stringify(data[0], null, 2));
   }
 
   return (
     data?.map((row: any) => ({
       id: row.id,
       name: row.name,
-      key: row.key,
+      key: row.value || '', // Use 'value' column (the actual column name)
       createdAt: row.created_at,
-      lastUsed: row.last_used ?? undefined,
+      lastUsed: undefined, // Column doesn't exist, so always undefined
     })) ?? []
   );
 }
@@ -54,22 +70,30 @@ export async function getApiKeyById(id: string): Promise<ApiKey | null> {
 }
 
 export async function createApiKey(name: string, key: string): Promise<ApiKey> {
+  // Use 'value' field to match the table schema
+  console.log('Creating API key with:', { name, keyLength: key.length });
+  console.log('Using Supabase client with service role key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+  
   const { data, error } = await supabaseServer
     .from(TABLE_NAME)
-    .insert({ name, key })
-    .select('id, name, key, created_at, last_used')
+    .insert({ name, value: key, usage: 0 })
+    .select('id, name, value, created_at')
     .single();
 
   if (error) {
+    console.error('Error creating API key - Full error:', JSON.stringify(error, null, 2));
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    console.error('Error details:', error.details);
     throw error;
   }
 
   return {
     id: data.id,
     name: data.name,
-    key: data.key,
+    key: data.value, // Map 'value' to 'key' in the response
     createdAt: data.created_at,
-    lastUsed: data.last_used ?? undefined,
+    lastUsed: undefined, // Column doesn't exist
   };
 }
 
@@ -77,14 +101,18 @@ export async function updateApiKey(
   id: string,
   updates: Partial<Pick<ApiKey, 'name' | 'key'>>
 ): Promise<ApiKey | null> {
+  const updateData: any = {};
+  if (updates.name !== undefined) updateData.name = updates.name;
+  if (updates.key !== undefined) {
+    updateData.key = updates.key;
+    updateData.value = updates.key; // Update both fields for compatibility
+  }
+
   const { data, error } = await supabaseServer
     .from(TABLE_NAME)
-    .update({
-      ...(updates.name !== undefined && { name: updates.name }),
-      ...(updates.key !== undefined && { key: updates.key }),
-    })
+    .update(updateData)
     .eq('id', id)
-    .select('id, name, key, created_at, last_used')
+    .select('id, name, key, value, created_at, last_used')
     .maybeSingle();
 
   if (error) {
@@ -96,7 +124,7 @@ export async function updateApiKey(
   return {
     id: data.id,
     name: data.name,
-    key: data.key,
+    key: data.key || data.value, // Support both field names
     createdAt: data.created_at,
     lastUsed: data.last_used ?? undefined,
   };
@@ -114,22 +142,13 @@ export async function deleteApiKey(id: string): Promise<boolean> {
 
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
-    // Check both 'value' (client-side) and 'key' (server-side) fields for compatibility
-    const { data: dataValue, error: errorValue } = await supabaseServer
-      .from(TABLE_NAME)
-      .select('id')
-      .eq('value', apiKey)
-      .limit(1);
+    console.log('validateApiKey - Validating key (length:', apiKey.length, ')');
     
-    if (!errorValue && dataValue && dataValue.length > 0) {
-      return true;
-    }
-    
-    // Fallback to 'key' field
+    // Only check 'value' column (the actual column name in the table)
     const { data, error } = await supabaseServer
       .from(TABLE_NAME)
       .select('id')
-      .eq('key', apiKey)
+      .eq('value', apiKey)
       .limit(1);
 
     if (error) {
@@ -137,7 +156,9 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
       return false;
     }
 
-    return data && data.length > 0;
+    const isValid = data && data.length > 0;
+    console.log('validateApiKey - Key is', isValid ? 'VALID' : 'INVALID');
+    return isValid;
   } catch (error) {
     console.error('Error validating API key:', error);
     return false;

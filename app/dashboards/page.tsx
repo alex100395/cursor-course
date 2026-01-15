@@ -29,27 +29,21 @@ export default function DashboardsPage() {
 
   const fetchApiKeys = async () => {
     try {
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('id, name, value, created_at, usage')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching API keys from Supabase:', error);
-        return;
+      console.log('Dashboard - Fetching API keys from /api/validate-key');
+      const response = await fetch('/api/validate-key');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Dashboard - API error response:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch API keys');
       }
-
-      setApiKeys(
-        (data ?? []).map((row: any) => ({
-          id: row.id,
-          name: row.name,
-          key: row.value,
-          createdAt: row.created_at,
-          lastUsed: undefined,
-        })),
-      );
-    } catch (error) {
-      console.error('Error fetching API keys:', error);
+      
+      const data = await response.json();
+      console.log('Dashboard - Received', data.length, 'API keys');
+      setApiKeys(data);
+    } catch (error: any) {
+      console.error('Dashboard - Error fetching API keys:', error);
+      alert(`Error loading API keys: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
@@ -58,25 +52,29 @@ export default function DashboardsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const { error } = await supabase.from('api_keys').insert({
-        name: formData.name,
-        value: formData.key,
-        usage: 0,
+      const response = await fetch('/api/validate-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          key: formData.key,
+        }),
       });
 
-      if (error) {
-        console.error('Error creating API key in Supabase:', error);
-        const supaMessage =
-          (error as any).message || JSON.stringify(error) || 'Failed to create API key';
-        alert(`Supabase error: ${supaMessage}`);
-        return;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create API key');
       }
 
       await fetchApiKeys();
       setIsModalOpen(false);
       setFormData({ name: '', key: '' });
-    } catch (error) {
+      showNotification('API key created successfully!');
+    } catch (error: any) {
       console.error('Error creating API key:', error);
+      alert(`Error: ${error.message || 'Failed to create API key'}`);
     }
   };
 
@@ -85,25 +83,31 @@ export default function DashboardsPage() {
     if (!editingKey) return;
 
     try {
-      const { error } = await supabase
-        .from('api_keys')
-        .update({
+      const response = await fetch('/api/validate-key', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: editingKey.id,
           name: formData.name,
-          value: formData.key,
-        })
-        .eq('id', editingKey.id);
+          key: formData.key,
+        }),
+      });
 
-      if (error) {
-        console.error('Error updating API key in Supabase:', error);
-        return;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update API key');
       }
 
       await fetchApiKeys();
       setIsModalOpen(false);
       setEditingKey(null);
       setFormData({ name: '', key: '' });
-    } catch (error) {
+      showNotification('API key updated successfully!');
+    } catch (error: any) {
       console.error('Error updating API key:', error);
+      alert(`Error: ${error.message || 'Failed to update API key'}`);
     }
   };
 
@@ -111,16 +115,20 @@ export default function DashboardsPage() {
     if (!confirm('Are you sure you want to delete this API key?')) return;
 
     try {
-      const { error } = await supabase.from('api_keys').delete().eq('id', id);
+      const response = await fetch(`/api/validate-key?id=${id}`, {
+        method: 'DELETE',
+      });
 
-      if (error) {
-        console.error('Error deleting API key in Supabase:', error);
-        return;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete API key');
       }
 
       await fetchApiKeys();
-    } catch (error) {
+      showNotification('API key deleted successfully!');
+    } catch (error: any) {
       console.error('Error deleting API key:', error);
+      alert(`Error: ${error.message || 'Failed to delete API key'}`);
     }
   };
 

@@ -36,7 +36,23 @@ export default function AuthCallback() {
             return;
           }
 
-          if (data.session) {
+          if (data.session && data.user) {
+            // Create or update user profile in database
+            try {
+              await fetch('/api/users/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: data.user.id,
+                  email: data.user.email,
+                  name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+                  image: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
+                }),
+              });
+            } catch (error) {
+              console.error('Error creating/updating user profile:', error);
+              // Continue even if user profile creation fails
+            }
             // Success! Redirect to home
             router.push('/');
             return;
@@ -57,7 +73,23 @@ export default function AuthCallback() {
             return;
           }
 
-          if (data.session) {
+          if (data.session && data.user) {
+            // Create or update user profile in database
+            try {
+              await fetch('/api/users/upsert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  id: data.user.id,
+                  email: data.user.email,
+                  name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+                  image: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
+                }),
+              });
+            } catch (error) {
+              console.error('Error creating/updating user profile:', error);
+              // Continue even if user profile creation fails
+            }
             router.push('/');
             return;
           }

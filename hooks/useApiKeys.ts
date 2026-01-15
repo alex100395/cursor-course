@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiKeysService } from '../lib/apiKeysService';
 import type { ApiKey } from '../types/apiKey';
 
 export function useApiKeys() {
@@ -11,11 +10,19 @@ export function useApiKeys() {
     try {
       setIsLoading(true);
       setError(null);
-      const keys = await apiKeysService.fetchAll();
+      const response = await fetch('/api/validate-key');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch API keys`);
+      }
+      const keys = await response.json();
       setApiKeys(keys);
     } catch (err) {
       console.error('Error fetching API keys:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch API keys');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : 'Failed to fetch API keys. Make sure the dev server is running.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -25,12 +32,27 @@ export function useApiKeys() {
     async (name: string, key: string) => {
       try {
         setError(null);
-        await apiKeysService.create(name, key);
+        const response = await fetch('/api/validate-key', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name, key }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || `HTTP ${response.status}: Failed to create API key`);
+        }
+
         await fetchApiKeys();
         return true;
       } catch (err) {
         console.error('Error creating API key:', err);
-        setError(err instanceof Error ? err.message : 'Failed to create API key');
+        const errorMessage = err instanceof Error 
+          ? err.message 
+          : 'Failed to create API key. Make sure the dev server is running.';
+        setError(errorMessage);
         return false;
       }
     },
@@ -41,7 +63,19 @@ export function useApiKeys() {
     async (id: string, name: string, key: string) => {
       try {
         setError(null);
-        await apiKeysService.update(id, name, key);
+        const response = await fetch('/api/validate-key', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id, name, key }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update API key');
+        }
+
         await fetchApiKeys();
         return true;
       } catch (err) {
@@ -57,7 +91,15 @@ export function useApiKeys() {
     async (id: string) => {
       try {
         setError(null);
-        await apiKeysService.delete(id);
+        const response = await fetch(`/api/validate-key?id=${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to delete API key');
+        }
+
         await fetchApiKeys();
         return true;
       } catch (err) {

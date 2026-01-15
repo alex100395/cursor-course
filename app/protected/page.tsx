@@ -6,7 +6,7 @@ import Sidebar from '../../components/Sidebar';
 import NotificationToast from '../../components/NotificationToast';
 import { useNotification } from '../../hooks/useNotification';
 import { VALID_API_KEY, INVALID_API_KEY } from '../../components/notifications';
-import { apiKeysService } from '../../lib/apiKeysService';
+// Removed apiKeysService - using API route instead
 
 export default function ProtectedPage() {
   const router = useRouter();
@@ -30,8 +30,11 @@ export default function ProtectedPage() {
       }
 
       try {
-        // Validate API key directly in Supabase
-        const keyIsValid = await apiKeysService.validate(apiKeyToValidate);
+        // Validate API key via API route (server-side, bypasses RLS)
+        const response = await fetch(`/api/validate-key?key=${encodeURIComponent(apiKeyToValidate)}`);
+        const result = await response.json();
+        
+        const keyIsValid = result.valid === true;
         setIsValid(keyIsValid);
 
         if (keyIsValid) {

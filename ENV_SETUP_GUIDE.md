@@ -8,7 +8,15 @@ Your `.env.local` file should contain the following variables:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xalevmbgzsoclkxosaup.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
+
+**Get Service Role Key from Supabase Dashboard:**
+1. Go to your Supabase project dashboard
+2. Navigate to: **Settings** → **API**
+3. Under "Project API keys", find the **`service_role`** key (NOT the `anon` key)
+4. Copy the service role key (this bypasses RLS for server-side operations)
+5. ⚠️ **IMPORTANT**: Never expose this key to the client-side! It should only be used in server-side code.
 
 ### 2. Google OAuth Credentials
 
@@ -64,6 +72,7 @@ OPENAI_API_KEY=sk-proj-your_openai_api_key_here
 
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` - ✅ You have this
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` - ✅ You have this
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` - ⚠️ **Required** - Get from Supabase Dashboard → Settings → API
 - [ ] `GOOGLE_CLIENT_ID` - ✅ You have this
 - [ ] `GOOGLE_CLIENT_SECRET` - ⚠️ Need to add from Google Console
 - [ ] `OPENAI_API_KEY` - ⚠️ Need to add from OpenAI Platform
