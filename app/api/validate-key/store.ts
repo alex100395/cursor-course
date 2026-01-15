@@ -17,17 +17,42 @@ export async function getAllApiKeys(userId?: string): Promise<ApiKey[]> {
   
   // Query only the columns that actually exist in the table
   // Based on errors: table has 'value' not 'key', and no 'last_used' column
+  // Note: user_id might not exist yet, so we won't filter by it if column doesn't exist
   let query = supabaseServer
     .from(TABLE_NAME)
-    .select('id, name, value, created_at, usage, user_id')
+    .select('id, name, value, created_at, usage')
     .order('created_at', { ascending: false });
 
-  // Filter by user_id if provided
+  // Filter by user_id if provided (will fail silently if column doesn't exist)
   if (userId) {
     query = query.eq('user_id', userId);
   }
 
   const { data, error } = await query;
+  
+  // If error is about missing column, retry without user_id filter
+  if (error && (error.message?.includes('column') || error.code === '42703')) {
+    console.warn('user_id column does not exist, fetching all keys');
+    const { data: allData, error: allError } = await supabaseServer
+      .from(TABLE_NAME)
+      .select('id, name, value, created_at, usage')
+      .order('created_at', { ascending: false });
+    
+    if (allError) {
+      throw allError;
+    }
+    
+    return (
+      allData?.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        key: row.value || '',
+        createdAt: row.created_at,
+        lastUsed: undefined,
+        userId: undefined,
+      })) ?? []
+    );
+  }
 
   if (error) {
     console.error('getAllApiKeys - Supabase error:', {
@@ -51,7 +76,7 @@ export async function getAllApiKeys(userId?: string): Promise<ApiKey[]> {
       key: row.value || '', // Use 'value' column (the actual column name)
       createdAt: row.created_at,
       lastUsed: undefined, // Column doesn't exist, so always undefined
-      userId: row.user_id,
+      userId: row.user_id || undefined, // user_id might not exist
     })) ?? []
   );
 }
@@ -95,13 +120,39 @@ export async function createApiKey(name: string, key: string, userId?: string | 
     insertData.user_id = userId;
   }
   
-  const { data, error } = await supabaseServer
+  // Try to insert - if user_id column doesn't exist, it will fail and we'll retry without it
+  let { data, error } = await supabaseServer
     .from(TABLE_NAME)
     .insert(insertData)
-    .select('id, name, value, created_at, user_id')
+    .select('id, name, value, created_at')
     .single();
 
-  if (error) {
+  // If error is about missing user_id column, retry without it
+  if (error && (error.message?.includes('user_id') || error.message?.includes('column') || error.code === '42703')) {
+    console.warn('user_id column does not exist, creating key without user_id');
+    const insertDataWithoutUserId = { 
+      name, 
+      value: key, 
+      usage: 0 
+    };
+    
+    const retryResult = await supabaseServer
+      .from(TABLE_NAME)
+      .insert(insertDataWithoutUserId)
+      .select('id, name, value, created_at')
+      .single();
+    
+    if (retryResult.error) {
+      console.error('Error creating API key - Full error:', JSON.stringify(retryResult.error, null, 2));
+      console.error('Error code:', retryResult.error.code);
+      console.error('Error message:', retryResult.error.message);
+      console.error('Error details:', retryResult.error.details);
+      throw retryResult.error;
+    }
+    
+    data = retryResult.data;
+    error = null;
+  } else if (error) {
     console.error('Error creating API key - Full error:', JSON.stringify(error, null, 2));
     console.error('Error code:', error.code);
     console.error('Error message:', error.message);
@@ -115,7 +166,7 @@ export async function createApiKey(name: string, key: string, userId?: string | 
     key: data.value, // Map 'value' to 'key' in the response
     createdAt: data.created_at,
     lastUsed: undefined, // Column doesn't exist
-    userId: data.user_id,
+    userId: data.user_id || undefined, // user_id might not exist
   };
 }
 
@@ -142,7 +193,7 @@ export async function updateApiKey(
   }
 
   const { data, error } = await query
-    .select('id, name, key, value, created_at, last_used, user_id')
+    .select('id, name, key, value, created_at, last_used')
     .maybeSingle();
 
   if (error) {
@@ -157,7 +208,7 @@ export async function updateApiKey(
     key: data.key || data.value, // Support both field names
     createdAt: data.created_at,
     lastUsed: data.last_used ?? undefined,
-    userId: data.user_id,
+    userId: data.user_id || undefined, // user_id might not exist
   };
 }
 

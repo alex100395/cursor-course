@@ -6,7 +6,10 @@
     "dev": "next dev -p 5001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "clean": "rm -rf .next",
+    "clean:win": "if exist .next rmdir /s /q .next",
+    "dev:clean": "npm run clean:win && npm run dev"
   },
   "dependencies": {
     "@langchain/core": "^1.1.11",
