@@ -78,18 +78,26 @@ export async function getApiKeyById(id: string): Promise<ApiKey | null> {
   };
 }
 
-export async function createApiKey(name: string, key: string, userId: string): Promise<ApiKey> {
+export async function createApiKey(name: string, key: string, userId?: string | null): Promise<ApiKey> {
   // Use 'value' field to match the table schema
   console.log('Creating API key with:', { name, keyLength: key.length, userId });
   console.log('Using Supabase client with service role key:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
   
-  if (!userId) {
-    throw new Error('User ID is required to create an API key');
+  // Build insert data - user_id is optional for backward compatibility
+  const insertData: any = { 
+    name, 
+    value: key, 
+    usage: 0 
+  };
+  
+  // Only add user_id if provided
+  if (userId) {
+    insertData.user_id = userId;
   }
   
   const { data, error } = await supabaseServer
     .from(TABLE_NAME)
-    .insert({ name, value: key, usage: 0, user_id: userId })
+    .insert(insertData)
     .select('id, name, value, created_at, user_id')
     .single();
 

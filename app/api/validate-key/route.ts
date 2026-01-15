@@ -15,22 +15,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ valid: isValid });
     }
 
-    // Otherwise, return API keys for the authenticated user
+    // Otherwise, return API keys for the authenticated user (or all if not authenticated)
     console.log('GET /api/validate-key - Fetching API keys');
     const userId = await getUserFromRequest(request);
     
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-    
     console.log('Service role key available:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Missing');
-    console.log('Fetching API keys for user:', userId);
+    console.log('User ID:', userId || 'Not authenticated - returning all keys');
     
-    const apiKeys = await getAllApiKeys(userId);
+    // If user is authenticated, filter by user_id, otherwise return all (for backward compatibility)
+    const apiKeys = await getAllApiKeys(userId || undefined);
     console.log('Successfully fetched', apiKeys.length, 'API keys');
     return NextResponse.json(apiKeys);
   } catch (error: any) {
@@ -62,13 +56,7 @@ export async function POST(request: NextRequest) {
     console.log('API Route - SUPABASE_SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
     
     const userId = await getUserFromRequest(request);
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    console.log('Creating API key for user:', userId || 'No user (anonymous)');
     
     const body = await request.json();
     const { name, key } = body;
@@ -80,7 +68,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newApiKey = await createApiKey(name, key, userId);
+    // user_id is optional - if not authenticated, key will be created without user_id
+    const newApiKey = await createApiKey(name, key, userId || null);
     return NextResponse.json(newApiKey, { status: 201 });
   } catch (error: any) {
     console.error('API Route - Error creating API key:', error);
