@@ -12,25 +12,40 @@ export function useAuth() {
 
     // Get initial session
     const initSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (mounted) {
-        if (error) {
-          console.error('Error getting session:', error);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (mounted) {
+          if (error) {
+            console.error('Error getting session:', error);
+          } else {
+            console.log('Session check:', session ? `Found user: ${session.user?.email}` : 'No session');
+          }
+          setSession(session);
+          setUser(session?.user ?? null);
+          setLoading(false);
         }
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      } catch (err) {
+        console.error('Error in initSession:', err);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     initSession();
 
-    // Also check after a delay (helps with production timing)
-    const timeoutId = setTimeout(() => {
+    // Also check after delays (helps with production timing)
+    const timeoutId1 = setTimeout(() => {
       if (mounted) {
         initSession();
       }
-    }, 1000);
+    }, 500);
+    
+    const timeoutId2 = setTimeout(() => {
+      if (mounted) {
+        initSession();
+      }
+    }, 2000);
 
     // Listen for auth changes
     const {
@@ -45,7 +60,8 @@ export function useAuth() {
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId1);
+      clearTimeout(timeoutId2);
       subscription.unsubscribe();
     };
   }, []);

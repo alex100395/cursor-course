@@ -25,7 +25,7 @@ export default function Home() {
     useApiKeys();
   const { showNotification, notificationMessage, notificationType, displayNotification } =
     useNotification();
-  const { user, loading: authLoading, signInWithGoogle, signOut, isAuthenticated } = useAuth();
+  const { user, session, loading: authLoading, signInWithGoogle, signOut, isAuthenticated } = useAuth();
 
   // Check for session in URL hash (from OAuth redirect) and process it
   useEffect(() => {
@@ -233,7 +233,7 @@ export default function Home() {
               {/* Authentication Section */}
               {authLoading ? (
                 <div className="h-9 w-20 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
-              ) : isAuthenticated ? (
+              ) : (isAuthenticated || user || session) ? (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
                     {user?.user_metadata?.avatar_url && (
