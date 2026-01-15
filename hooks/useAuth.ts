@@ -10,72 +10,91 @@ export function useAuth() {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session
+    // DIRECT approach: Get session and set state immediately
     const initSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (mounted) {
           if (error) {
-            console.error('Error getting session:', error);
-          } else {
-            console.log('Session check:', session ? `Found user: ${session.user?.email}` : 'No session');
+            console.error('❌ Error getting session:', error);
           }
-          setSession(session);
-          setUser(session?.user ?? null);
+          
+          if (session) {
+            console.log('✅ Session found:', session.user?.email);
+            setSession(session);
+            setUser(session.user);
+            setLoading(false);
+            return; // Exit early if we have a session
+          }
+          
+          // If no session, set to null and stop loading
+          setSession(null);
+          setUser(null);
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error in initSession:', err);
+        console.error('❌ Error in initSession:', err);
         if (mounted) {
           setLoading(false);
         }
       }
     };
 
+    // Get session immediately
     initSession();
 
-    // Also check after delays (helps with production timing)
-    const timeoutId1 = setTimeout(() => {
+    // Also check after a short delay (for production timing)
+    const timeoutId = setTimeout(() => {
       if (mounted) {
         initSession();
       }
-    }, 500);
-    
-    const timeoutId2 = setTimeout(() => {
-      if (mounted) {
-        initSession();
-      }
-    }, 2000);
+    }, 1000);
 
-    // Listen for auth changes
+    // Listen for auth changes - this is the PRIMARY way to detect sessions
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Auth state changed:', event, session?.user?.email || 'no user');
+      
       if (mounted) {
         setSession(session);
         setUser(session?.user ?? null);
+        setLoading(false);
         
         // If we have a session but user metadata is missing, refresh the user
         if (session?.user && (!session.user.user_metadata || Object.keys(session.user.user_metadata).length === 0)) {
-          try {
-            const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+          supabase.auth.getUser().then(({ data: { user: refreshedUser } }) => {
             if (refreshedUser && mounted) {
+              console.log('✅ User metadata refreshed');
               setUser(refreshedUser);
             }
-          } catch (err) {
-            console.error('Error refreshing user:', err);
-          }
+          }).catch(err => {
+            console.error('❌ Error refreshing user:', err);
+          });
         }
-        
-        setLoading(false);
       }
     });
 
+    // Also listen for storage changes (in case session is saved in another tab/window)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key && (e.key.includes('supabase') || e.key.includes('sb-'))) {
+        console.log('🔄 Storage changed, checking session...');
+        initSession();
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+    }
+
     return () => {
       mounted = false;
-      clearTimeout(timeoutId1);
-      clearTimeout(timeoutId2);
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', handleStorageChange);
+      }
     };
   }, []);
 

@@ -8,6 +8,7 @@ import ApiKeyModal from '../components/ApiKeyModal';
 import { useApiKeys } from '../hooks/useApiKeys';
 import { useNotification } from '../hooks/useNotification';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabaseClient';
 import { API_KEY_CREATED, API_KEY_DELETED } from '../components/notifications';
 import type { ApiKey, ApiKeyFormData } from '../types/apiKey';
 
@@ -46,6 +47,24 @@ export default function Home() {
     
     processUrlHash();
   }, []);
+
+  // Force session check - if session exists but state says not authenticated, reload
+  useEffect(() => {
+    const checkAndReload = async () => {
+      // Only check if we think we're not authenticated
+      if (!authLoading && !isAuthenticated) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('🔄 Session exists but state says not authenticated - reloading');
+          window.location.reload();
+        }
+      }
+    };
+    
+    // Check after 2 seconds
+    const timer = setTimeout(checkAndReload, 2000);
+    return () => clearTimeout(timer);
+  }, [authLoading, isAuthenticated]);
 
   // Only fetch API keys when authenticated
   useEffect(() => {
