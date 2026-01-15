@@ -28,7 +28,7 @@ if (process.env.NODE_ENV === 'development') {
   console.log('   - Using Service Role Key:', usingServiceRole);
   console.log('   - SSL Certificate Validation: Disabled (development mode)');
   
-  if (usingServiceRole) {
+  if (usingServiceRole && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     // Decode JWT to verify it's a service role key
     try {
       const payload = JSON.parse(Buffer.from(process.env.SUPABASE_SERVICE_ROLE_KEY.split('.')[1], 'base64').toString());
