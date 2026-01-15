@@ -164,13 +164,16 @@ export async function createApiKey(name: string, key: string, userId?: string | 
     throw new Error('Failed to create API key: No data returned');
   }
 
+  // Type assertion since user_id might not be in the select but could exist
+  const dataWithUserId = data as any;
+
   return {
     id: data.id,
     name: data.name,
     key: data.value, // Map 'value' to 'key' in the response
     createdAt: data.created_at,
     lastUsed: undefined, // Column doesn't exist
-    userId: data.user_id || undefined, // user_id might not exist
+    userId: dataWithUserId.user_id || undefined, // user_id might not exist
   };
 }
 
@@ -206,13 +209,16 @@ export async function updateApiKey(
 
   if (!data) return null;
 
+  // Type assertion since user_id might not be in the select but could exist
+  const dataWithUserId = data as any;
+
   return {
     id: data.id,
     name: data.name,
     key: data.key || data.value, // Support both field names
     createdAt: data.created_at,
     lastUsed: data.last_used ?? undefined,
-    userId: data.user_id || undefined, // user_id might not exist
+    userId: dataWithUserId.user_id || undefined, // user_id might not exist
   };
 }
 
