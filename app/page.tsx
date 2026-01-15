@@ -8,6 +8,7 @@ import ApiKeyModal from '../components/ApiKeyModal';
 import { useApiKeys } from '../hooks/useApiKeys';
 import { useNotification } from '../hooks/useNotification';
 import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabaseClient';
 import { API_KEY_CREATED, API_KEY_DELETED } from '../components/notifications';
 import type { ApiKey, ApiKeyFormData } from '../types/apiKey';
 
@@ -41,10 +42,21 @@ export default function Home() {
         window.location.hash = '';
         window.location.search = '';
       }
+      
+      // Also check session after a delay in production (to handle timing issues)
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        setTimeout(async () => {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session && !isAuthenticated) {
+            // Force a re-render by reloading the page
+            window.location.reload();
+          }
+        }, 2000);
+      }
     };
     
     checkAuthFromUrl();
-  }, []);
+  }, [isAuthenticated]);
 
   // Refetch API keys when authentication state changes
   useEffect(() => {

@@ -21,6 +21,11 @@ export function useAuth() {
           setSession(session);
           setUser(session?.user ?? null);
           setLoading(false);
+          if (session?.user) {
+            console.log('Session found:', session.user.email);
+          } else {
+            console.log('No session found');
+          }
         }
       } catch (error) {
         console.error('Error in checkSession:', error);
@@ -33,10 +38,12 @@ export function useAuth() {
     // Check immediately
     checkSession();
 
-    // Also check after a short delay in case session is still being saved
-    const timeoutId = setTimeout(() => {
-      checkSession();
-    }, 100);
+    // Check multiple times with increasing delays to handle production timing issues
+    const timeouts = [
+      setTimeout(() => checkSession(), 100),
+      setTimeout(() => checkSession(), 500),
+      setTimeout(() => checkSession(), 1000),
+    ];
 
     // Listen for auth changes
     const {
@@ -52,7 +59,7 @@ export function useAuth() {
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      timeouts.forEach(timeout => clearTimeout(timeout));
       subscription.unsubscribe();
     };
   }, []);

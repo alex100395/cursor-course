@@ -53,8 +53,22 @@ export default function AuthCallback() {
               console.error('Error creating/updating user profile:', error);
               // Continue even if user profile creation fails
             }
+            
+            // Verify session is saved by checking it again
+            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+            if (verifiedSession) {
+              console.log('Session verified, redirecting...');
+            } else {
+              console.warn('Session not found after setting, retrying...');
+              // Retry setting the session
+              await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+            }
+            
             // Wait a moment to ensure session is persisted, then redirect
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             // Use window.location for full page reload to ensure session is read
             window.location.href = '/';
             return;
@@ -92,8 +106,22 @@ export default function AuthCallback() {
               console.error('Error creating/updating user profile:', error);
               // Continue even if user profile creation fails
             }
+            
+            // Verify session is saved by checking it again
+            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+            if (verifiedSession) {
+              console.log('Session verified, redirecting...');
+            } else {
+              console.warn('Session not found after setting, retrying...');
+              // Retry setting the session
+              await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+            }
+            
             // Wait a moment to ensure session is persisted, then redirect
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 1000));
             // Use window.location for full page reload to ensure session is read
             window.location.href = '/';
             return;
