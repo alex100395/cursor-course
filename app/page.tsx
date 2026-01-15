@@ -8,7 +8,6 @@ import ApiKeyModal from '../components/ApiKeyModal';
 import { useApiKeys } from '../hooks/useApiKeys';
 import { useNotification } from '../hooks/useNotification';
 import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../lib/supabaseClient';
 import { API_KEY_CREATED, API_KEY_DELETED } from '../components/notifications';
 import type { ApiKey, ApiKeyFormData } from '../types/apiKey';
 
@@ -28,43 +27,10 @@ export default function Home() {
     useNotification();
   const { user, loading: authLoading, signInWithGoogle, signOut, isAuthenticated } = useAuth();
 
-  // Check for auth session on mount (in case we're redirected back from OAuth)
-  useEffect(() => {
-    const checkAuthFromUrl = async () => {
-      // Clear any hash fragments that might interfere
-      if (window.location.hash && window.location.hash !== '#') {
-        const hash = window.location.hash.substring(1);
-        // If hash contains auth tokens, let Supabase handle it
-        if (hash.includes('access_token') || hash.includes('code')) {
-          console.log('Auth tokens found in URL hash, waiting for Supabase to process...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        // Clear the hash after processing
-        if (window.history.replaceState) {
-          window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-      }
-      
-      // Check session after page load (helps with production timing)
-      // Wait a bit longer in production
-      const delay = window.location.hostname === 'localhost' ? 1000 : 2000;
-      setTimeout(async () => {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('Post-load session check:', session ? `✅ Found (${session.user.email})` : '❌ Not found', error ? `Error: ${error.message}` : '');
-        if (session && !isAuthenticated && !authLoading) {
-          // Session exists but wasn't detected - the useAuth hook should pick this up
-          console.log('⚠️ Session exists but isAuthenticated is false - useAuth should detect it');
-        }
-      }, delay);
-    };
-    
-    checkAuthFromUrl();
-  }, [isAuthenticated, authLoading]);
 
-  // Refetch API keys when authentication state changes or after auth loading completes
+  // Refetch API keys when authentication state changes
   useEffect(() => {
-    if (!authLoading) {
-      // Fetch API keys regardless of auth state (for backward compatibility)
+    if (isAuthenticated && !authLoading) {
       fetchApiKeys();
     }
   }, [isAuthenticated, authLoading, fetchApiKeys]);

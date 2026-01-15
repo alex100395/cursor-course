@@ -53,41 +53,8 @@ export default function AuthCallback() {
               console.error('Error creating/updating user profile:', error);
               // Continue even if user profile creation fails
             }
-            
-            // Verify session is saved by checking it again
-            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
-            if (verifiedSession) {
-              console.log('✅ Session verified, redirecting...', verifiedSession.user.email);
-              // Double-check localStorage has the session
-              const storedSession = localStorage.getItem(`sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`);
-              console.log('Session in localStorage:', !!storedSession);
-            } else {
-              console.warn('⚠️ Session not found after setting, retrying...');
-              // Retry setting the session (only if we still have tokens)
-              if (accessToken && refreshToken) {
-                const { data: retryData, error: retryError } = await supabase.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken,
-                });
-                if (retryError) {
-                  console.error('Retry session error:', retryError);
-                } else if (retryData.session) {
-                  console.log('✅ Session set on retry');
-                }
-              }
-            }
-            
-            // Wait longer to ensure session is persisted, especially in production
-            const waitTime = window.location.hostname === 'localhost' ? 1000 : 2000;
-            console.log(`Waiting ${waitTime}ms before redirect...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            
-            // Final verification
-            const { data: { session: finalSession } } = await supabase.auth.getSession();
-            console.log('Final session check before redirect:', finalSession ? '✅ Found' : '❌ Not found');
-            
-            // Use window.location for full page reload to ensure session is read
-            window.location.href = '/';
+            // Success! Redirect to home
+            router.push('/');
             return;
           }
         }
@@ -123,27 +90,7 @@ export default function AuthCallback() {
               console.error('Error creating/updating user profile:', error);
               // Continue even if user profile creation fails
             }
-            
-            // Verify session is saved by checking it again
-            const { data: { session: verifiedSession } } = await supabase.auth.getSession();
-            if (verifiedSession) {
-              console.log('✅ Session verified after code exchange, redirecting...', verifiedSession.user.email);
-            } else {
-              console.warn('⚠️ Session not found after exchangeCodeForSession');
-              // For code exchange, we can't retry easily, so just log the warning
-            }
-            
-            // Wait longer to ensure session is persisted, especially in production
-            const waitTime = window.location.hostname === 'localhost' ? 1000 : 2000;
-            console.log(`Waiting ${waitTime}ms before redirect...`);
-            await new Promise(resolve => setTimeout(resolve, waitTime));
-            
-            // Final verification
-            const { data: { session: finalSession } } = await supabase.auth.getSession();
-            console.log('Final session check before redirect:', finalSession ? '✅ Found' : '❌ Not found');
-            
-            // Use window.location for full page reload to ensure session is read
-            window.location.href = '/';
+            router.push('/');
             return;
           }
         }
