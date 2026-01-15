@@ -50,10 +50,23 @@ export function useAuth() {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // If we have a session but user metadata is missing, refresh the user
+        if (session?.user && (!session.user.user_metadata || Object.keys(session.user.user_metadata).length === 0)) {
+          try {
+            const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+            if (refreshedUser && mounted) {
+              setUser(refreshedUser);
+            }
+          } catch (err) {
+            console.error('Error refreshing user:', err);
+          }
+        }
+        
         setLoading(false);
       }
     });

@@ -126,12 +126,8 @@ export function useApiKeys() {
     [fetchApiKeys]
   );
 
-  useEffect(() => {
-    // Only fetch API keys if we're in a browser environment
-    if (typeof window !== 'undefined') {
-      fetchApiKeys();
-    }
-  }, [fetchApiKeys]);
+  // Note: API keys are now fetched from the page component when authenticated
+  // This useEffect is removed to prevent fetching when not authenticated
 
   return {
     apiKeys,

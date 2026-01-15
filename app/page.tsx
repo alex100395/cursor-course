@@ -47,12 +47,7 @@ export default function Home() {
     processUrlHash();
   }, []);
 
-  // Always fetch API keys when component mounts
-  useEffect(() => {
-    fetchApiKeys();
-  }, [fetchApiKeys]);
-  
-  // Also refetch when authentication state changes
+  // Only fetch API keys when authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       fetchApiKeys();
@@ -233,18 +228,18 @@ export default function Home() {
               {/* Authentication Section */}
               {authLoading ? (
                 <div className="h-9 w-20 rounded-lg bg-zinc-100 dark:bg-zinc-800 animate-pulse"></div>
-              ) : (isAuthenticated || user || session) ? (
+              ) : isAuthenticated ? (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
-                    {user?.user_metadata?.avatar_url && (
+                    {(user?.user_metadata?.avatar_url || user?.user_metadata?.picture || session?.user?.user_metadata?.avatar_url || session?.user?.user_metadata?.picture) && (
                       <img
-                        src={user.user_metadata.avatar_url}
-                        alt={user.email || 'User'}
+                        src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture || session?.user?.user_metadata?.avatar_url || session?.user?.user_metadata?.picture}
+                        alt={user?.email || session?.user?.email || 'User'}
                         className="h-6 w-6 rounded-full"
                       />
                     )}
                     <span className="text-xs font-medium text-zinc-700 dark:text-zinc-200 max-w-[120px] truncate">
-                      {user?.user_metadata?.full_name || user?.email || 'User'}
+                      {user?.user_metadata?.full_name || user?.user_metadata?.name || session?.user?.user_metadata?.full_name || session?.user?.user_metadata?.name || user?.email || session?.user?.email || 'User'}
                     </span>
                   </div>
                   <button
@@ -398,7 +393,8 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* API keys summary card */}
+              {/* API keys summary card - only show when authenticated */}
+              {!authLoading && isAuthenticated && (
               <div className="rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-sm p-6 flex flex-col justify-between">
                 <div className="space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
@@ -423,11 +419,12 @@ export default function Home() {
                   </button>
                 </div>
               </div>
+              )}
             </section>
 
             {/* API Keys table / states */}
-            {/* Show API keys if authenticated OR if we have keys (for backward compatibility) */}
-            {(isAuthenticated || apiKeys.length > 0 || !authLoading) && (
+            {/* Only show API keys when authenticated */}
+            {!authLoading && isAuthenticated && (
             <section className="space-y-4">
               {error && (
                 <div className="p-4 bg-red-50 dark:bg-red-900/15 border border-red-200 dark:border-red-800 rounded-2xl">
