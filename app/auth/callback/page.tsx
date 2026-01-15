@@ -60,11 +60,13 @@ export default function AuthCallback() {
               console.log('Session verified, redirecting...');
             } else {
               console.warn('Session not found after setting, retrying...');
-              // Retry setting the session
-              await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              });
+              // Retry setting the session (only if we still have tokens)
+              if (accessToken && refreshToken) {
+                await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                });
+              }
             }
             
             // Wait a moment to ensure session is persisted, then redirect
@@ -112,12 +114,8 @@ export default function AuthCallback() {
             if (verifiedSession) {
               console.log('Session verified, redirecting...');
             } else {
-              console.warn('Session not found after setting, retrying...');
-              // Retry setting the session
-              await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              });
+              console.warn('Session not found after exchangeCodeForSession');
+              // For code exchange, we can't retry easily, so just log the warning
             }
             
             // Wait a moment to ensure session is persisted, then redirect
