@@ -10,11 +10,26 @@ import { VALID_API_KEY, INVALID_API_KEY } from '../../components/notifications';
 
 export default function ProtectedPage() {
   const router = useRouter();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const { showNotification, notificationMessage, notificationType, displayNotification } =
     useNotification();
+
+  // Auto-open sidebar on desktop (>= 1024px), keep closed on mobile/tablet
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
+    };
+    // Set initial state based on screen size
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const validateApiKey = async () => {

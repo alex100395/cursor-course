@@ -31,58 +31,58 @@ export default function ApiKeysTable({
   };
 
   return (
-    <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/80">
-        <div>
-          <h2 className="text-sm font-semibold tracking-tight">API Keys</h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+    <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm shadow-lg overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 bg-white/5">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xs sm:text-sm font-semibold tracking-tight text-white">API Keys</h2>
+          <p className="text-[10px] sm:text-xs text-gray-400">
             Rotate keys regularly and remove any that are no longer in use.
           </p>
         </div>
         <button
           onClick={onCreate}
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white border-0 px-3 py-1.5 text-xs font-medium shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 w-full sm:w-auto justify-center"
         >
           <span className="text-base leading-none">+</span>
           <span>New key</span>
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-zinc-50 dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-zinc-800">
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <table className="w-full text-xs sm:text-sm min-w-[600px]">
+          <thead className="bg-white/5 border-b border-white/10">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-[0.12em]">
+              <th className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-[0.12em]">
                 Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-[0.12em]">
+              <th className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-[0.12em]">
                 API Key
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-[0.12em]">
+              <th className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-[0.12em] hidden md:table-cell">
                 Created
               </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-[0.12em]">
+              <th className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-[0.12em] hidden lg:table-cell">
                 Last Used
               </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-zinc-600 dark:text-zinc-300 uppercase tracking-[0.12em]">
+              <th className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-[0.12em]">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <tbody className="divide-y divide-white/10 bg-white/5">
             {apiKeys.map((key) => (
-              <tr key={key.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
-                <td className="px-6 py-3 whitespace-nowrap">
-                  <div className="text-sm font-medium">{key.name}</div>
+              <tr key={key.id} className="hover:bg-white/5 transition-colors">
+                <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 whitespace-nowrap">
+                  <div className="text-xs sm:text-sm font-medium text-white">{key.name}</div>
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs font-mono text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-md">
+                <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 whitespace-nowrap">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                    <code className="text-[10px] sm:text-xs font-mono text-gray-300 bg-white/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md break-all max-w-[120px] sm:max-w-none">
                       {revealedIds[key.id] ? key.key : maskApiKey(key.key)}
                     </code>
                     <button
                       type="button"
                       onClick={() => toggleReveal(key.id)}
-                      className="inline-flex items-center justify-center rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1 text-[11px] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/5 hover:bg-white/10 px-1.5 sm:px-2 py-1 text-[10px] sm:text-[11px] text-gray-300 hover:text-white transition-colors shrink-0"
                       title={revealedIds[key.id] ? 'Hide key' : 'Show key'}
                     >
                       {revealedIds[key.id] ? (
@@ -139,38 +139,38 @@ export default function ApiKeysTable({
                     </button>
                     <button
                       onClick={() => onCopy(key.key, key.id)}
-                      className="inline-flex items-center rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2 py-1 text-[11px] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="inline-flex items-center rounded-md border border-white/20 bg-white/5 hover:bg-white/10 px-1.5 sm:px-2 py-1 text-[10px] sm:text-[11px] text-gray-300 hover:text-white transition-colors shrink-0"
                       title="Copy full key"
                     >
                       {copiedId === key.id ? 'Copied' : 'Copy'}
                     </button>
                   </div>
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap">
-                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 whitespace-nowrap hidden md:table-cell">
+                  <div className="text-[10px] sm:text-xs text-gray-400">
                     {formatDate(key.createdAt)}
                   </div>
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap">
-                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
+                <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 whitespace-nowrap hidden lg:table-cell">
+                  <div className="text-[10px] sm:text-xs text-gray-400">
                     {key.lastUsed ? (
                       formatDate(key.lastUsed)
                     ) : (
-                      <span className="italic text-zinc-400 dark:text-zinc-500">Never</span>
+                      <span className="italic text-gray-500">Never</span>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-3 whitespace-nowrap text-right">
-                  <div className="flex justify-end gap-2">
+                <td className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3 whitespace-nowrap text-right">
+                  <div className="flex justify-end gap-1.5 sm:gap-2">
                     <button
                       onClick={() => onEdit(key)}
-                      className="inline-flex items-center rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="inline-flex items-center rounded-md border border-white/20 bg-white/5 hover:bg-white/10 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-medium text-gray-300 hover:text-white transition-colors"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => onDelete(key.id)}
-                      className="inline-flex items-center rounded-md border border-red-200/80 dark:border-red-900 bg-red-50/80 dark:bg-red-950 px-2.5 py-1 text-[11px] font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900"
+                      className="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-medium text-red-400 hover:text-red-300 transition-colors"
                     >
                       Delete
                     </button>

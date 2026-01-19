@@ -98,7 +98,7 @@ export default function AuthCallback() {
             
             // Use window.location for full page reload to ensure session is read
             console.log('🔄 Redirecting to home page...');
-            window.location.href = '/';
+            window.location.href = '/dashboard';
             return;
           }
         }
@@ -169,7 +169,7 @@ export default function AuthCallback() {
             
             // Use window.location for full page reload to ensure session is read
             console.log('🔄 Redirecting to home page...');
-            window.location.href = '/';
+            window.location.href = '/dashboard';
             return;
           }
         }
